@@ -1,3 +1,4 @@
 TOKEN=''
 API_ID = ''
 API_HASH = ''
+SLEEP_TIME = '60'
