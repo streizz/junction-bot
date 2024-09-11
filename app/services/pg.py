@@ -1,6 +1,8 @@
 from pyrogram import Client
+from pyrogram.errors.exceptions.bad_request_400 import InviteRequestSent, InviteHashExpired
 from config import API_ID, API_HASH
 from app.data.data import DataStorage
+import asyncio
 
 import sqlite3
 
@@ -63,13 +65,23 @@ class pg:
 
 						try:
 
-							link = f't.me/{chat.username}/{message.id}' if message.from_user.username else message.from_user.first_name
+							link = f't.me/{chat.username}/{message.id}'
 							text = [
 								f"🔔 {chat.username} | {link}\n",
 								txt
 							]
 						except:
-							await self.client.join_chat(channel_id)
+							try:
+
+								await self.client.join_chat(channel_id)
+
+							except InviteRequestSent or InviteHashExpired:
+
+								conn = sqlite3.connect('data.db')
+								cur = conn.cursor()
+								cur.execute("DELETE * FROM users WHERE channel = ?", (channel_id,))
+								continue
+							
 
 						conn = sqlite3.connect('data.db')
 						cur = conn.cursor()
@@ -79,20 +91,38 @@ class pg:
 
 						for id in users:
 
-							cur.execute("SELECT keywords FROM filters WHERE userid = ?", (id,))
+							cur.execute("SELECT keywords FROM filters WHERE userid = ? AND keywords IS NOT NULL", (id,))
 							res = cur.fetchall()
 							keywords = [item[0] for item in res]
 
+							cur.execute("SELECT banwords FROM filters WHERE userid = ? AND banwords IS NOT NULL", (id,))
+							res1 = cur.fetchall()
+							banwords = [item1[0] for item1 in res1]
+
 							conn.close()
+
+							keyflag = False
+							banflag = False
 
 							if keywords:
 								for word in keywords:
+									if word:
+										if word.lower() in txt.lower():
+												
+												keyflag = True
 
-									if word.lower() in txt.lower():
+							if not keywords:
+								keyflag = True
 
-										await self.bot.send_message(id, '\n'.join(text), disable_web_page_preview=True)
+							if banwords:
+								for banword in banwords:
+									if banword:
+										if banword.lower() in txt.lower():
 
-							else:
+											banflag = True
+											
+							if keyflag and not banflag:
+								
 								await self.bot.send_message(id, '\n'.join(text), disable_web_page_preview=True)
 
 						await data.add_pars_data(channel_id, message.id)

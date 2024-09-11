@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+from pyrogram.errors import FloodWait 
 from aiogram import Bot, Dispatcher
 
 from config import TOKEN
@@ -20,15 +21,14 @@ async def main():
     dp.include_router(router)
 
 
-    # запускаем бота параллельно с циклом парсера
     try:
         print(f"Bot Junction V1.0 started!")
         await asyncio.gather(
             dp.start_polling(bot),
             update_loops(bot)
         )
-    finally:
-        await bot.session.close()
+    except FloodWait as e: 
+        await asyncio.sleep(e.value)
 
 
 if __name__ == '__main__':
