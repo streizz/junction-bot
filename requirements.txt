@@ -1,2 +1,3 @@
 aiogram==3.10.0
 Pyrogram==2.0.106
+nltk==3.9.1

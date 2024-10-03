@@ -1,7 +1,11 @@
 from pyrogram import Client
 from pyrogram.errors.exceptions.bad_request_400 import InviteRequestSent, InviteHashExpired
-from config import API_ID, API_HASH
+from config import API_ID, API_HASH, PHONE
 from app.data.data import DataStorage
+from aiogram.exceptions import TelegramMigrateToChat
+from nltk.stem.snowball import SnowballStemmer
+from nltk.stem import PorterStemmer
+from nltk.tokenize import word_tokenize
 import asyncio
 
 import sqlite3
@@ -13,7 +17,8 @@ class pg:
 		self.client = Client(
 			"client",
 			api_id=API_ID,
-			api_hash=API_HASH
+			api_hash=API_HASH,
+			phone_number=PHONE
 		)
 
 		self.bot = bot
@@ -91,6 +96,10 @@ class pg:
 
 						for id in users:
 
+							cur.execute("SELECT tochat FROM destination WHERE userid = ?", (id,))
+							res = cur.fetchall()
+							destination = [item[0] for item in res] if res else id
+
 							cur.execute("SELECT keywords FROM filters WHERE userid = ? AND keywords IS NOT NULL", (id,))
 							res = cur.fetchall()
 							keywords = [item[0] for item in res]
@@ -104,10 +113,15 @@ class pg:
 							keyflag = False
 							banflag = False
 
+							stemmer = SnowballStemmer("russian")
+							text = txt.lower()
+							tokens = word_tokenize(text)
+							stemmed_words = [stemmer.stem(word) for word in tokens]
+
 							if keywords:
 								for word in keywords:
 									if word:
-										if word.lower() in txt.lower():
+										if word.lower() in stemmed_words:
 												
 												keyflag = True
 
@@ -117,12 +131,27 @@ class pg:
 							if banwords:
 								for banword in banwords:
 									if banword:
-										if banword.lower() in txt.lower():
+										if banword.lower() in stemmed_words:
 
 											banflag = True
 											
 							if keyflag and not banflag:
-								
-								await self.bot.send_message(id, '\n'.join(text), disable_web_page_preview=True)
+								if destination != id:
+									for chat in destination:
+										try:
+
+											await self.bot.send_message(chat, '\n'.join(text), disable_web_page_preview=True)
+
+										except TelegramMigrateToChat:
+
+											conn = sqlite3.connect('data.db')
+											cur = conn.cursor()
+											cur.execute(f"DELETE * FROM destination WHERE userid = {chat}")
+											conn.commit()
+											conn.close()
+
+								else:
+									
+									await self.bot.send_message(id, '\n'.join(text), disable_web_page_preview=True)
 
 						await data.add_pars_data(channel_id, message.id)
