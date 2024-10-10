@@ -147,7 +147,7 @@ class pg:
 
 											conn = sqlite3.connect('data.db')
 											cur = conn.cursor()
-											cur.execute(f"DELETE * FROM destination WHERE userid = {chat}")
+											cur.execute(f"DELETE * FROM destination WHERE userid = {chat1}")
 											conn.commit()
 											conn.close()
 
