@@ -1,14 +1,17 @@
 from pyrogram import Client
 from pyrogram.errors.exceptions.bad_request_400 import InviteRequestSent, InviteHashExpired
-from config import API_ID, API_HASH, PHONE
+from config import PHONE, API_HASH, API_ID
 from app.data.data import DataStorage
 from aiogram.exceptions import TelegramMigrateToChat
 from nltk.stem.snowball import SnowballStemmer
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
+from nltk import download
 import asyncio
 
 import sqlite3
+
+download('punkt_tab')
 
 class pg:
 
@@ -16,8 +19,6 @@ class pg:
 
 		self.client = Client(
 			"client",
-			api_id=API_ID,
-			api_hash=API_HASH,
 			phone_number=PHONE
 		)
 
@@ -137,10 +138,10 @@ class pg:
 											
 							if keyflag and not banflag:
 								if destination != id:
-									for chat in destination:
+									for chat1 in destination:
 										try:
 
-											await self.bot.send_message(chat, '\n'.join(text), disable_web_page_preview=True)
+											await self.bot.send_message(chat1, f"🔔 {chat.username} | {link}\n" + text, disable_web_page_preview=True)
 
 										except TelegramMigrateToChat:
 
@@ -151,7 +152,7 @@ class pg:
 											conn.close()
 
 								else:
-									
-									await self.bot.send_message(id, '\n'.join(text), disable_web_page_preview=True)
+									chat = await client.get_chat(channel_id)
+									await self.bot.send_message(id, f"🔔 {chat.username} | {link}\n" + text, disable_web_page_preview=True)
 
 						await data.add_pars_data(channel_id, message.id)
