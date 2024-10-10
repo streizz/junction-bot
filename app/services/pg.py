@@ -1,6 +1,6 @@
 from pyrogram import Client
 from pyrogram.errors.exceptions.bad_request_400 import InviteRequestSent, InviteHashExpired
-from config import PHONE, API_HASH, API_ID
+from config import PHONE
 from app.data.data import DataStorage
 from aiogram.exceptions import TelegramMigrateToChat
 from nltk.stem.snowball import SnowballStemmer
